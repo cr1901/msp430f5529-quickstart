@@ -19,6 +19,7 @@ use msp430f5529::interrupt;
 
 use core::convert::Infallible;
 use hmac_sha256::HMAC;
+use hmac_sha512::HMAC as HMAC512;
 use ufmt::uwrite;
 use ufmt_write::uWrite;
 
@@ -91,17 +92,23 @@ fn main() -> ! {
 
     let mut writer = UartWriter::new(uart);
 
-    let timer = p.TIMER_0_A5;
     // Divide by 16 (8, 2) to get 65536 Hz timer.
     // Count up to 1 second for benchmark.
+    let timer = p.TIMER_0_A5;
+    // Divide by 2.
     timer.ta0ex0.write(|w| w.taidex().taidex_1());
 
-    // Count from 0 to 65535, use SCLK, start timer (continuous).
+    // Count from 0 to 65535, use SCLK, divide by 8.
     timer
         .ta0ctl
-        .write(|w| w.tassel().tassel_2().id().id_3().mc().mc_2());
+        .write(|w| w.tassel().tassel_2().id().id_3());
 
-    // Do benchmark
+    // Do benchmark- reset timer val, start timer (continuous).
+    timer.ta0r.write(|w| unsafe {w.bits(0)});
+    timer
+        .ta0ctl
+        .modify(|_, w| w.mc().mc_2());
+
     let h = HMAC::mac(&[], &[0u8; 32]);
     assert_eq!(
         &h[..],
@@ -115,9 +122,32 @@ fn main() -> ! {
     timer.ta0ctl.modify(|_, w| w.mc().mc_0());
 
     let elapsed = timer.ta0r.read().bits();
-
     uwrite!(writer, "hmac_sha256: {}/65536 seconds\r\n", elapsed).unwrap();
 
+    // Next benchmark
+    timer.ta0r.write(|w| unsafe {w.bits(0)});
+    timer
+        .ta0ctl
+        .modify(|_, w| w.mc().mc_2());
+
+    let h = HMAC512::mac(&[], &[0u8; 32]);
+    assert_eq!(
+        &h[..],
+        &[
+            185, 54, 206, 232, 108, 159, 135, 170, 93, 60, 111, 46, 132, 203, 90, 66, 57, 165, 254,
+            80, 72, 10, 110, 198, 107, 112, 171, 91, 31, 74, 198, 115, 12, 108, 81, 84, 33, 179,
+            39, 236, 29, 105, 64, 46, 83, 223, 180, 154, 215, 56, 30, 176, 103, 179, 56, 253, 123,
+            12, 178, 34, 71, 34, 93, 71
+        ]
+    );
+
+    timer.ta0ctl.modify(|_, w| w.mc().mc_0());
+
+    let elapsed = timer.ta0r.read().bits();
+    uwrite!(writer, "hmac_sha512: {}/65536 seconds\r\n", elapsed).unwrap();
+
+    // We are done!
+    uwrite!(writer, "bench.rs Okay!\r\n").unwrap();
     loop {
         asm::nop();
     }
