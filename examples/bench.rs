@@ -99,15 +99,11 @@ fn main() -> ! {
     timer.ta0ex0.write(|w| w.taidex().taidex_1());
 
     // Count from 0 to 65535, use SCLK, divide by 8.
-    timer
-        .ta0ctl
-        .write(|w| w.tassel().tassel_2().id().id_3());
+    timer.ta0ctl.write(|w| w.tassel().tassel_2().id().id_3());
 
     // Do benchmark- reset timer val, start timer (continuous).
-    timer.ta0r.write(|w| unsafe {w.bits(0)});
-    timer
-        .ta0ctl
-        .modify(|_, w| w.mc().mc_2());
+    timer.ta0r.write(|w| unsafe { w.bits(0) });
+    timer.ta0ctl.modify(|_, w| w.mc().mc_2());
 
     let h = HMAC::mac(&[], &[0u8; 32]);
     assert_eq!(
@@ -125,10 +121,8 @@ fn main() -> ! {
     uwrite!(writer, "hmac_sha256: {}/65536 seconds\r\n", elapsed).unwrap();
 
     // Next benchmark
-    timer.ta0r.write(|w| unsafe {w.bits(0)});
-    timer
-        .ta0ctl
-        .modify(|_, w| w.mc().mc_2());
+    timer.ta0r.write(|w| unsafe { w.bits(0) });
+    timer.ta0ctl.modify(|_, w| w.mc().mc_2());
 
     let h = HMAC512::mac(&[], &[0u8; 32]);
     assert_eq!(
