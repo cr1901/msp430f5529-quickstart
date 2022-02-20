@@ -17,33 +17,13 @@ use msp430_rt::entry;
 #[allow(unused)]
 use msp430f5529::interrupt;
 
-use core::convert::Infallible;
+use fixed::types::U0F16;
 use hmac_sha256::HMAC;
 use hmac_sha512::HMAC as HMAC512;
 use ufmt::uwrite;
-use ufmt_write::uWrite;
 
-struct UartWriter(msp430f5529::USCI_A1_UART_MODE);
-
-impl UartWriter {
-    fn new(uart: msp430f5529::USCI_A1_UART_MODE) -> Self {
-        UartWriter(uart)
-    }
-}
-
-impl uWrite for UartWriter {
-    type Error = Infallible;
-
-    fn write_str(&mut self, s: &str) -> Result<(), Infallible> {
-        s.as_bytes().iter().for_each(|b| {
-            while self.0.uca1ifg.read().uctxifg().bit_is_clear() {}
-
-            self.0.uca1txbuf.write(|w| unsafe { w.bits(*b) });
-        });
-
-        Ok(())
-    }
-}
+mod newtypes;
+use newtypes::fmt::{U0F16SmallFmt, UartWriter};
 
 #[entry]
 fn main() -> ! {
@@ -118,7 +98,12 @@ fn main() -> ! {
     timer.ta0ctl.modify(|_, w| w.mc().mc_0());
 
     let elapsed = timer.ta0r.read().bits();
-    uwrite!(writer, "hmac_sha256: {}/65536 seconds\r\n", elapsed).unwrap();
+    uwrite!(
+        writer,
+        "hmac_sha256: {} seconds\r\n",
+        U0F16SmallFmt::from(U0F16::from_bits(elapsed))
+    )
+    .unwrap();
 
     // Next benchmark
     timer.ta0r.write(|w| unsafe { w.bits(0) });
@@ -138,7 +123,12 @@ fn main() -> ! {
     timer.ta0ctl.modify(|_, w| w.mc().mc_0());
 
     let elapsed = timer.ta0r.read().bits();
-    uwrite!(writer, "hmac_sha512: {}/65536 seconds\r\n", elapsed).unwrap();
+    uwrite!(
+        writer,
+        "hmac_sha512: {} seconds\r\n",
+        U0F16SmallFmt::from(U0F16::from_bits(elapsed))
+    )
+    .unwrap();
 
     // We are done!
     uwrite!(writer, "bench.rs Okay!\r\n").unwrap();
