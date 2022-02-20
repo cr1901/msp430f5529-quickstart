@@ -9,26 +9,14 @@ version = "0.1.0"
 msp430 = "0.3.0"
 msp430-rt = "0.3.1"
 panic-msp430 = "0.3.0"
+msp430f5529 = { version = "0.2.0", features = ["rt"] }
 
 [dev-dependencies]
 hmac-sha256 = { version = "0.1.7", features=["opt_size"] }
 hmac-sha512 = { version = "0.1.8", features=["opt_size"] }
 ufmt = "0.1.0"
 ufmt-write = "0.1.0"
-
-# Use an existing PAC to ensure examples and the crate itself compiles. If
-# targeting a different device, you will need to replace all instances of
-# the identifier "msp430g2553" with the crate name of your PAC. Your PAC must
-# be generated with svd2rust git commit 783fbd0 or later.
-[dependencies.msp430f5529]
-version = "0.2.0"
-features = ["rt"]
-
-# Uncomment for the "timer-oncecell example". The interior mutability type
-# OnceCell provides a better size footprint compared to RefCell.
-[dev-dependencies.once_cell]
-version = "1.7.2"
-default_features = false
+once_cell = { version = "1.7.2", default_features = false }
 
 # Required for `cargo fix` to work!
 [[bin]]
