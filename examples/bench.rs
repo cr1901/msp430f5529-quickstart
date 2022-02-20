@@ -18,7 +18,6 @@ use msp430_rt::entry;
 use msp430f5529::interrupt;
 
 use core::convert::Infallible;
-use ed25519_compact::{KeyPair, Seed, Noise};
 use hmac_sha256::HMAC;
 use hmac_sha512::HMAC as HMAC512;
 use ufmt::uwrite;
@@ -146,21 +145,6 @@ fn main() -> ! {
 
     let elapsed = timer.ta0r.read().bits();
     uwrite!(writer, "hmac_sha512: {}/65536 seconds\r\n", elapsed).unwrap();
-
-    // Final benchmark
-
-    // A message to sign and verify.
-    let message = b"test";
-
-    // Generates a new key pair using a random seed.
-    // A given seed will always produce the same key pair.
-    let key_pair = KeyPair::from_seed(Seed::default());
-
-    // Computes a signature for this message using the secret part of the key pair.
-    let signature = key_pair.sk.sign(message, Some(Noise::default()));
-
-    // Verifies the signature using the public part of the key pair.
-    assert!(key_pair.pk.verify(message, &signature).is_ok());
 
     // We are done!
     uwrite!(writer, "bench.rs Okay!\r\n").unwrap();
