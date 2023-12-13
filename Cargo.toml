@@ -6,10 +6,10 @@ name = "msp430f5529-quickstart"
 version = "0.1.0"
 
 [dependencies]
-msp430 = "0.3.0"
-msp430-rt = "0.3.1"
-panic-msp430 = "0.3.0"
-msp430f5529 = { version = "0.2.0", features = ["rt"] }
+msp430 = "0.4.0"
+msp430-rt = "0.4.0"
+panic-msp430 = "0.4.0"
+msp430f5529 = { git = "https://github.com/cr1901/msp430f5529", branch="rt-up-v0.4.0", features = ["rt"] }
 
 [dev-dependencies]
 hmac-sha256 = { version = "0.1.7", features=["opt_size"] }
