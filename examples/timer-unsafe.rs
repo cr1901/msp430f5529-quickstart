@@ -30,31 +30,35 @@ fn main() -> ! {
     let p = unsafe { Peripherals::steal() };
 
     let wdt = &p.WATCHDOG_TIMER;
-    wdt.wdtctl.write(|w| {
-        unsafe { w.bits(0x5A00) } // password
-            .wdthold()
-            .set_bit()
+    wdt.wdtctl().write(|w| {
+        w.wdtpw().password().wdthold().set_bit()
     });
 
     let port_1_2 = &p.PORT_1_2;
-    port_1_2
-        .p1dir
-        .modify(|_, w| w.p0().set_bit().p6().set_bit());
-    port_1_2
-        .p1out
-        .modify(|_, w| w.p0().set_bit().p6().clear_bit());
+    let port_3_4 = &p.PORT_3_4;
+    // set P1.0 high and P4.7 low
+    port_1_2.p1out().modify(|_, w| w.p1out0().set_bit());
+    port_3_4.p4out().modify(|_, w| w.p4out7().clear_bit());
 
-    let clock = &p.SYSTEM_CLOCK;
-    clock.bcsctl3.modify(|_, w| w.lfxt1s().lfxt1s_2());
-    clock.bcsctl1.modify(|_, w| w.diva().diva_1());
+    // Set P1.0 and P4.7 as outputs
+    port_1_2.p1dir().modify(|_, w| w.p1dir0().set_bit());
+    port_3_4.p4dir().modify(|_, w| w.p4dir7().set_bit());
 
-    let timer = &p.TIMER0_A3;
-    timer.ta0ccr0.write(|w| unsafe { w.bits(1200) });
+    let clock = &p.UCS;
+    // Use REFO clock to source ACLK- 32768 Hz, nominally.
+    clock.ucsctl4().modify(|_, w| w.sela().sela_2());
+    // Divide it by 4, down to ~8192 Hz.
+    clock.ucsctl5().modify(|_, w| w.diva().diva_2());
+
+    let timer = &p.TIMER0_A5;
+    timer.taccr0().write(|w| w.taccr0().bits(1200) );
+    // Use ACLK as source, count uo to TACCR0 value (arbitrary, not too fast)
     timer
-        .ta0ctl
+        .tactl()
         .modify(|_, w| w.tassel().tassel_1().mc().mc_1());
-    timer.ta0cctl1.modify(|_, w| w.ccie().set_bit());
-    timer.ta0ccr1.write(|w| unsafe { w.bits(600) });
+    timer.tacctl1().modify(|_, w| w.ccie().set_bit());
+    // Fire interrupt halfway to 1200 each time.
+    timer.taccr1().write(|w| w.taccr1().bits(600));
 
     unsafe {
         mspint::enable();
@@ -65,17 +69,18 @@ fn main() -> ! {
 
 #[interrupt]
 fn TIMER0_A1() {
-    mspint::free(|_cs| {
-        // Safe because msp430 disables interrupts on handler entry. Therefore the handler
-        // has full control/access to peripherals without data races.
-        let p = unsafe { Peripherals::steal() };
+    // Safe because msp430 disables interrupts on handler entry. Therefore the handler
+    // has full control/access to peripherals without data races.
+    let p = unsafe { Peripherals::steal() };
 
-        let timer = &p.TIMER0_A3;
-        timer.ta0cctl1.modify(|_, w| w.ccifg().clear_bit());
+    let timer = &p.TIMER0_A5;
+    timer.tacctl1().modify(|_, w| w.ccifg().clear_bit());
 
-        let port_1_2 = &p.PORT_1_2;
-        port_1_2
-            .p1out
-            .modify(|r, w| w.p0().bit(!r.p0().bit()).p6().bit(!r.p6().bit()));
-    });
+    let port_1_2 = &p.PORT_1_2;
+    port_1_2
+        .p1out()
+        .modify(|r, w| w.p1out0().bit(!r.p1out0().bit()));
+
+    let port_3_4 = &p.PORT_3_4;
+    port_3_4.p4out().modify(|r, w| w.p4out7().bit(!r.p4out7().bit()));
 }
