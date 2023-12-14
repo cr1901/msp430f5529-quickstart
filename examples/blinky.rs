@@ -46,7 +46,7 @@ fn main() -> ! {
 
     // set P1.0 high and P4.7 low
     p12.p1out().modify(|_, w| w.p1out0().set_bit());
-    p34.p4out().modify(|_, w| w.p4out7().set_bit());
+    p34.p4out().modify(|_, w| w.p4out7().clear_bit());
 
     // Set P1.0 and P4.7 as outputs
     p12.p1dir().modify(|_, w| w.p1dir0().set_bit());
