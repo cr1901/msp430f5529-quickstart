@@ -146,9 +146,9 @@ pub mod fmt {
 
         fn write_str(&mut self, s: &str) -> Result<(), Infallible> {
             s.as_bytes().iter().for_each(|b| {
-                while self.0.uca1ifg.read().uctxifg().bit_is_clear() {}
+                while self.0.uca1ifg().read().uctxifg().bit_is_clear() {}
 
-                self.0.uca1txbuf.write(|w| unsafe { w.bits(*b) });
+                self.0.uca1txbuf().write(|w| w.bits(*b));
             });
 
             Ok(())
